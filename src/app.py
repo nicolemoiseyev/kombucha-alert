@@ -33,7 +33,7 @@ def get_products(search_query):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.binary_location(config["GOOGLE_CHROME_BIN"])
+    chrome_options.binary_location = config["GOOGLE_CHROME_BIN"]
     driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"], chrome_options=chrome_options)
 
     #driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"])
