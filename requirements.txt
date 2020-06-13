@@ -1,0 +1,5 @@
+pip
+requests
+selenium
+json
+yaml
