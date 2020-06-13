@@ -6,9 +6,23 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+import os
 # Load config
-config = yaml.safe_load(open("./config.yml"))
+
+# when deployed to Heroku
+is_prod = os.environ.get('IS_HEROKU', None)
+
+if is_prod:
+    config = {
+        "SLACK_TOKEN": os.environ.get("SLACK_TOKEN"),
+        "ZIPCODE": os.environ.get("ZIPCODE"),
+        "CHROME_DRIVER_PATH": os.environ.get("CHROME_DRIVER_PATH"),
+        "GOOGLE_CHROME_BIN": os.environ.get("GOOGLE_CHROME_BIN")
+    }
+
+else:
+    # running locally
+    config = yaml.safe_load(open("./config.yml"))
 
 # product we want to search for on whole foods
 search_query = "GT Kombucha"
@@ -23,11 +37,15 @@ SLACK_CHANNEL = "#lemonade"
 Get available products list
 '''
 def get_products(search_query):
-    # Run the driver in headless mode on a server
-    options = Options()
-    options.headless = True
-    options.add_argument("--window-size=1920,1200")
-    driver = webdriver.Chrome(options=options,executable_path=config["CHROME_DRIVER_PATH"])
+    # Run the driver in headless mode
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--no-sandbox")
+
+    if is_prod:
+        chrome_options.binary_location(config["GOOGLE_CHROME_BIN"])
+    driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"], chrome_options=chrome_options)
 
     #driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"])
     driver.get("https://primenow.amazon.com/")
@@ -67,8 +85,8 @@ def product_is_available(product, available_products):
 '''
 Send notification through slack
 '''
-def send_notification(product_name, available_products)
-    if product_is_available(product_name):
+def send_notification(product_name, available_products):
+    if product_is_available(product_name, available_products):
         message = f"*{product_name}* is available on Whole Foods PrimeNow!"
     else:
         message = "Product not available"
