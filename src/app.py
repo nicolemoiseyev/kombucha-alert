@@ -1,5 +1,4 @@
 import requests
-import yaml
 import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -7,22 +6,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
-# Load config
 
-# when deployed to Heroku
-is_prod = os.environ.get('IS_HEROKU', None)
-
-if is_prod:
-    config = {
+# Load config variables
+config = {
         "SLACK_TOKEN": os.environ.get("SLACK_TOKEN"),
         "ZIPCODE": os.environ.get("ZIPCODE"),
         "CHROME_DRIVER_PATH": os.environ.get("CHROME_DRIVER_PATH"),
         "GOOGLE_CHROME_BIN": os.environ.get("GOOGLE_CHROME_BIN")
-    }
-
-else:
-    # running locally
-    config = yaml.safe_load(open("./config.yml"))
+}
 
 # product we want to search for on whole foods
 search_query = "GT Kombucha"
@@ -42,9 +33,7 @@ def get_products(search_query):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--no-sandbox")
-
-    if is_prod:
-        chrome_options.binary_location(config["GOOGLE_CHROME_BIN"])
+    chrome_options.binary_location(config["GOOGLE_CHROME_BIN"])
     driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"], chrome_options=chrome_options)
 
     #driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"])
