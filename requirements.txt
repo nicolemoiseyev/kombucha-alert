@@ -1,3 +1,4 @@
+pyyaml
 pip
 requests
 selenium
