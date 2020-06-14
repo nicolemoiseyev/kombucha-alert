@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
 
-in_prod = os.environ.get("IS_HEROKU") == True
+in_prod = os.environ.get("IS_HEROKU") == "True"
 print(in_prod)
 
 # Load config variables
