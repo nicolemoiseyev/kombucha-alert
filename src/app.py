@@ -59,8 +59,10 @@ def get_products(search_query):
 
     # Enter the product and submit the search
     product_search.send_keys(search_query)
-    submit_search = driver.find_element_by_xpath(
-        "//button[@class='page_header_search_wrapper__searchButton__2Vo9i']")
+    submit_search = driver.find_element_by_xpath("//button[@aria-label='Search']")
+
+    print(submit_search) # debugging
+
     submit_search.click()
 
     # get the list of products after waiting up to 5s for the search to load
