@@ -59,15 +59,8 @@ def get_products(search_query):
     wait = WebDriverWait(driver, 5)
     product_search = wait.until(
         EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Search Whole Foods Market']")))
-    product_search.send_keys(search_query)
-    product_search.send_keys(Keys.ENTER)
-
-    '''
-    # Submit the search
-    wait = WebDriverWait(driver, 5)
-    submit_search = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Search']")))
-    submit_search.click();
-    '''
+    product_search.send_keys(search_query) # enter search
+    product_search.send_keys(Keys.ENTER) # submit search
 
     # get the list of products after waiting up to 5s for the search to load
     # we're assuming the product we want is on the first page
@@ -76,32 +69,51 @@ def get_products(search_query):
 
     # iterate over existing products
     available_products = []
-    for item in driver.find_elements_by_class_name('asin_card__title__1Oc6S'): # class of elements corresponding to product names
-        item_name = item.find_element_by_xpath('.//div/div').text
-        available_products.append(item_name)
+    for item in driver.find_elements_by_class_name('product_grid__item__1eRlB'): # product li elements
+        item_name = item.find_element_by_class_name('asin_card__title__1Oc6S').text
+        img_src = item.find_element_by_xpath(".//img").get_attribute("src");
+        available_products.append({"name": item_name, "img": img_src})
 
     print(available_products)
     driver.quit()
     return available_products
 
-def product_is_available(product, available_products):
-    return product in available_products
+def product_is_available(product_name, available_products):
+    for item in available_products:
+        if item["name"] == product_name: return item
+    return False
 
 
 '''
 Send notification through slack
 '''
 def send_notification(product_name, available_products):
-    if product_is_available(product_name, available_products):
-        message = f"*{product_name}* is available on Whole Foods PrimeNow!"
+    item = product_is_available(product_name, available_products)
+    if item:
+        message = f":boom: KOMBUCHA ALERT! :boom: \n*{product_name}* is available on Whole Foods PrimeNow!"
     else:
-        message = "Product not available"
+        return "No message sent"
 
     params = {
         "token": SLACK_TOKEN,
         "channel": SLACK_CHANNEL,
-        "text": message
+        "blocks": [
+            {
+    			"type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": message
+                },
+                "accessory": {
+    				"type": "image",
+    				"image_url": item["img"],
+    				"alt_text": "Product image"
+    		    }
+            }
+        ]
     }
+
+
     slack_endpt = "https://slack.com/api/chat.postMessage"
     message = requests.post(slack_endpt, params = params)
 
