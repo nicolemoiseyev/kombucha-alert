@@ -7,6 +7,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
 
+in_prod = os.environ.get("IS_HEROKU") == True
+print(in_prod)
+
 # Load config variables
 config = {
         "SLACK_TOKEN": os.environ.get("SLACK_TOKEN"),
@@ -23,6 +26,10 @@ product_name = "GT's, Organic Raw Kombucha Lemonade, 16.2 Ounce"
 SLACK_TOKEN = config["SLACK_TOKEN"]
 SLACK_CHANNEL = "#lemonade"
 
+if not in_prod:
+    import yaml
+    with open("../config.yml") as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
 
 '''
 Get available products list
@@ -30,10 +37,11 @@ Get available products list
 def get_products(search_query):
     # Run the driver in headless mode
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.binary_location = config["GOOGLE_CHROME_BIN"]
+    chrome_options.add_argument("--headless");
+    chrome_options.add_argument("--disable-gpu");
+    chrome_options.add_argument("--no-sandbox");
+    if in_prod:
+        chrome_options.binary_location = config["GOOGLE_CHROME_BIN"]
     driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"], chrome_options=chrome_options)
 
     #driver = webdriver.Chrome(executable_path=config["CHROME_DRIVER_PATH"])
@@ -52,7 +60,8 @@ def get_products(search_query):
     # Enter the product and submit the search
     product_search.send_keys(search_query)
     submit_search = driver.find_element_by_xpath(
-        "//button[@class='page_header_search_wrapper__searchButton__2Vo9i']").click()
+        "//button[@class='page_header_search_wrapper__searchButton__2Vo9i']")
+    submit_search.click()
 
     # get the list of products after waiting up to 5s for the search to load
     # we're assuming the product we want is on the first page
@@ -65,6 +74,8 @@ def get_products(search_query):
         item_name = item.find_element_by_xpath('.//div/div').text
         available_products.append(item_name)
 
+    print(available_products)
+    driver.quit()
     return available_products
 
 def product_is_available(product, available_products):
