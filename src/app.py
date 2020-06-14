@@ -5,6 +5,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
 import os
 
 in_prod = os.environ.get("IS_HEROKU") == "True"
@@ -59,13 +60,14 @@ def get_products(search_query):
     product_search = wait.until(
         EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Search Whole Foods Market']")))
     product_search.send_keys(search_query)
+    product_search.send_keys(Keys.ENTER)
 
+    '''
     # Submit the search
     wait = WebDriverWait(driver, 5)
     submit_search = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Search']")))
     submit_search.click();
-
-    print(submit_search) # debugging
+    '''
 
     # get the list of products after waiting up to 5s for the search to load
     # we're assuming the product we want is on the first page
