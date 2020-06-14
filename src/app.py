@@ -26,10 +26,12 @@ product_name = "GT's, Organic Raw Kombucha Lemonade, 16.2 Ounce"
 SLACK_TOKEN = config["SLACK_TOKEN"]
 SLACK_CHANNEL = "#lemonade"
 
+'''
 if not in_prod:
     import yaml
     with open("../config.yml") as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
+'''
 
 '''
 Get available products list
@@ -56,14 +58,14 @@ def get_products(search_query):
     wait = WebDriverWait(driver, 5)
     product_search = wait.until(
         EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Search Whole Foods Market']")))
-
-    # Enter the product and submit the search
     product_search.send_keys(search_query)
-    submit_search = driver.find_element_by_xpath("//button[@aria-label='Search']")
+
+    # Submit the search
+    wait = WebDriverWait(driver, 5)
+    submit_search = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Search']")))
+    submit_search.click();
 
     print(submit_search) # debugging
-
-    submit_search.click()
 
     # get the list of products after waiting up to 5s for the search to load
     # we're assuming the product we want is on the first page
