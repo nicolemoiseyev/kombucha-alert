@@ -19,20 +19,9 @@ config = {
         "GOOGLE_CHROME_BIN": os.environ.get("GOOGLE_CHROME_BIN")
 }
 
-# product we want to search for on whole foods
-search_query = "GT Kombucha"
-product_name = "GT's, Organic Raw Kombucha Lemonade, 16.2 Ounce"
-
 # parameters to send the notification through slack
 SLACK_TOKEN = config["SLACK_TOKEN"]
 SLACK_CHANNEL = "#lemonade"
-
-'''
-if not in_prod:
-    import yaml
-    with open("../config.yml") as file:
-        config = yaml.load(file, Loader=yaml.FullLoader)
-'''
 
 '''
 Get available products list
@@ -71,10 +60,11 @@ def get_products(search_query):
     available_products = []
     for item in driver.find_elements_by_class_name('product_grid__item__1eRlB'): # product li elements
         item_name = item.find_element_by_class_name('asin_card__title__1Oc6S').text
-        img_src = item.find_element_by_xpath(".//img").get_attribute("src");
+        wait = WebDriverWait(driver, 5)
+        img = wait.until(EC.presence_of_element_located((By.XPATH, ".//img")))
+        img_src = img.get_attribute("src");
         available_products.append({"name": item_name, "img": img_src})
 
-    print(available_products)
     driver.quit()
     return available_products
 
@@ -99,27 +89,51 @@ def send_notification(product_name, available_products):
         "channel": SLACK_CHANNEL,
         "blocks": [
             {
-    			"type": "section",
+                "type": "section",
                 "text": {
                     "type": "mrkdwn",
                     "text": message
                 },
-                "accessory": {
-    				"type": "image",
-    				"image_url": item["img"],
-    				"alt_text": "Product image"
-    		    }
+
+            },
+            {
+              "type": "image",
+              "title": {
+                "type": "plain_text",
+                "text": product_name
+              },
+              "image_url": item["img"],
+              "alt_text": "Product image"
             }
         ]
     }
 
 
     slack_endpt = "https://slack.com/api/chat.postMessage"
-    message = requests.post(slack_endpt, params = params)
+    message = requests.post(slack_endpt, data = json.dumps(params), headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Bearer {SLACK_TOKEN}"
+    })
 
-    return message
+    return message.json()
 
 if __name__ == "__main__":
-    available_products = get_products(search_query)
-    message = send_notification(product_name, available_products)
-    print(message)
+
+    searches = [
+        {
+            "search": "GT Kombucha",
+            "product": "GT's, Organic Raw Kombucha Lemonade, 16.2 Ounce",
+        }
+    ]
+
+    for search in searches:
+        available_products = get_products(search["search"])
+        message = send_notification(search["product"], available_products)
+        print(message)
+
+    '''
+    {
+        "search": "Green Mountain Gringo, Medium Salsa, 16 Ounce",
+        "product": "Green Mountain Gringo, Medium Salsa, 16 Ounce"
+    },
+    '''
