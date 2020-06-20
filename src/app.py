@@ -60,7 +60,7 @@ def get_products(search_query):
     available_products = []
     for item in driver.find_elements_by_class_name('product_grid__item__1eRlB'): # product li elements
         item_name = item.find_element_by_class_name('asin_card__title__1Oc6S').text
-        wait = WebDriverWait(driver, 5)
+        wait = WebDriverWait(item, 5)
         img = wait.until(EC.presence_of_element_located((By.XPATH, ".//img")))
         img_src = img.get_attribute("src");
         available_products.append({"name": item_name, "img": img_src})
@@ -77,7 +77,9 @@ def product_is_available(product_name, available_products):
 '''
 Send notification through slack
 '''
-def send_notification(product_name, available_products):
+def send_notification(product, available_products):
+
+    product_name = product["product_name"]
     item = product_is_available(product_name, available_products)
     if item:
         message = f":boom: KOMBUCHA ALERT! :boom: \n*{product_name}* is available on Whole Foods PrimeNow!"
@@ -86,7 +88,7 @@ def send_notification(product_name, available_products):
 
     params = {
         "token": SLACK_TOKEN,
-        "channel": SLACK_CHANNEL,
+        "channel": product["channel"],
         "blocks": [
             {
                 "type": "section",
@@ -94,13 +96,12 @@ def send_notification(product_name, available_products):
                     "type": "mrkdwn",
                     "text": message
                 },
-
             },
             {
               "type": "image",
               "title": {
                 "type": "plain_text",
-                "text": product_name
+                "text": product["product_name"]
               },
               "image_url": item["img"],
               "alt_text": "Product image"
@@ -119,16 +120,17 @@ def send_notification(product_name, available_products):
 
 if __name__ == "__main__":
 
-    searches = [
+    products = [
         {
             "search": "GT Kombucha",
-            "product": "GT's, Organic Raw Kombucha Lemonade, 16.2 Ounce",
+            "product_name": "GT's, Organic Raw Kombucha Lemonade, 16.2 Ounce",
+            "channel": "#lemonade"
         }
     ]
 
-    for search in searches:
-        available_products = get_products(search["search"])
-        message = send_notification(search["product"], available_products)
+    for item in products:
+        available_products = get_products(item["search"])
+        message = send_notification(item, available_products)
         print(message)
 
     '''
