@@ -7,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import os
+import time
 
 in_prod = os.environ.get("IS_HEROKU") == "True"
 print(in_prod)
@@ -19,9 +20,47 @@ config = {
         "GOOGLE_CHROME_BIN": os.environ.get("GOOGLE_CHROME_BIN")
 }
 
+
 # parameters to send the notification through slack
 SLACK_TOKEN = config["SLACK_TOKEN"]
-SLACK_CHANNEL = "#lemonade"
+
+'''
+Check if we already sent a message about this product in the last n_hours
+'''
+def check_if_message_sent(n_hours, product):
+    product_name = product["product_name"]
+    channel = product["channel"]
+
+    conversations_endpt = "https://slack.com/api/conversations.list"
+
+    # Get list of Slack channels to retrieve this channel's ID
+    channels = requests.get(conversations_endpt, headers = {"Authorization": f"Bearer {SLACK_TOKEN}"})
+    channels = channels.json()["channels"]
+
+    channel_id = ""
+    for result in channels:
+        if result["name"] == channel:
+            channel_id = result["id"]
+            break
+
+    history_endpt = "https://slack.com/api/conversations.history"
+    messages = requests.get(history_endpt, params = {"channel": channel_id}, headers = {"Authorization": f"Bearer {SLACK_TOKEN}"})
+    messages = messages.json()["messages"]
+
+    if (len(messages) == 0): return False # no messages ever sent
+
+    last_message = messages[0]
+    time_stamp = float(last_message["ts"])
+
+    curr_time = time.time()
+    sec_per_hour = 60*60
+    seconds_elapsed = curr_time - time_stamp
+
+    if (seconds_elapsed / sec_per_hour < n_hours):
+        print(f"Last message sent at {time_stamp}")
+        return True
+
+    return False
 
 '''
 Get available products list
@@ -81,6 +120,7 @@ def send_notification(product, available_products):
 
     product_name = product["product_name"]
     item = product_is_available(product_name, available_products)
+
     if item:
         message = f":boom: KOMBUCHA ALERT! :boom: \n*{product_name}* is available on Whole Foods PrimeNow!"
     else:
@@ -88,7 +128,7 @@ def send_notification(product, available_products):
 
     params = {
         "token": SLACK_TOKEN,
-        "channel": product["channel"],
+        "channel": "#" + product["channel"],
         "blocks": [
             {
                 "type": "section",
@@ -120,18 +160,22 @@ def send_notification(product, available_products):
 
 if __name__ == "__main__":
 
+    n_hours = 5
+
+
     products = [
         {
             "search": "GT Kombucha",
             "product_name": "GT's, Organic Raw Kombucha Lemonade, 16.2 Ounce",
-            "channel": "#lemonade"
+            "channel": "lemonade"
         }
     ]
 
     for item in products:
-        available_products = get_products(item["search"])
-        message = send_notification(item, available_products)
-        print(message)
+        if not check_if_message_sent(n_hours, item):
+            available_products = get_products(item["search"])
+            message = send_notification(item, available_products)
+            print(message)
 
     '''
     {
